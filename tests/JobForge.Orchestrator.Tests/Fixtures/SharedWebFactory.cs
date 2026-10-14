@@ -8,6 +8,7 @@ namespace JobForge.Orchestrator.Tests.Fixtures;
 public sealed class SharedWebFactory : WebApplicationFactory<Program>
 {
     public required ContainersFixture Infra { get; init; }
+    public string SchedulerLeaseName { get; init; } = $"scheduler:lease:test:{Guid.NewGuid():N}";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -19,6 +20,7 @@ public sealed class SharedWebFactory : WebApplicationFactory<Program>
             new("Kafka:BootstrapServers", "localhost:9092"),
             new("OpenIddict:ClientSecret", "test-secret"),
             new("Scheduler:Enabled", "false"),
+            new("Scheduler:LeaseName", SchedulerLeaseName),
             new("Outbox:Enabled", "false"),
             new("Kestrel:Endpoints:http:Url", "http://127.0.0.1:0"),
             new("Kestrel:Endpoints:grpc:Url", "http://127.0.0.1:0"),

@@ -3,11 +3,13 @@ using JobForge.Orchestrator.Api;
 using JobForge.Orchestrator.Auth;
 using JobForge.Orchestrator.Configuration;
 using JobForge.Orchestrator.Persistence;
+using JobForge.Orchestrator.Scheduling;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
+using StackExchange.Redis;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -67,6 +69,14 @@ builder.Services.AddAuthorization(options => options.AddJobForgePolicies());
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IdempotencyService>();
+
+builder.Services.Configure<SchedulerOptions>(builder.Configuration.GetSection("Scheduler"));
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
+    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]!));
+builder.Services.AddSingleton<LeaseService>();
+// Singleton própria + hosted via factory: o teste resolve CronSchedulerService direto.
+builder.Services.AddSingleton<CronSchedulerService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<CronSchedulerService>());
 
 var app = builder.Build();
 

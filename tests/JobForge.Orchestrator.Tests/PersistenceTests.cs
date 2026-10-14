@@ -46,7 +46,8 @@ public class PersistenceTests
         await db.SaveChangesAsync();
 
         await using var db2 = NewDb(_c.Postgres);
-        var loaded = await db2.JobDefinitions.Include(j => j.Executions).SingleAsync();
+        var loaded = await db2.JobDefinitions.Include(j => j.Executions)
+            .SingleAsync(j => j.Id == job.Id);
         Assert.Equal("daily-report", loaded.Name);
         Assert.Single(loaded.Executions);
         Assert.Equal(ExecutionStatus.Pending, loaded.Executions[0].Status);
