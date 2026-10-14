@@ -16,7 +16,9 @@ public class PersistenceTests
     private static JobForgeDbContext NewDb(PostgreSqlContainer pg)
     {
         var options = new DbContextOptionsBuilder<JobForgeDbContext>()
-            .UseNpgsql(pg.GetConnectionString()).Options;
+            .UseNpgsql(pg.GetConnectionString())
+            .UseOpenIddict()
+            .Options;
         return new JobForgeDbContext(options);
     }
 

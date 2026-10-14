@@ -1,3 +1,4 @@
+using JobForge.Orchestrator.Auth;
 using JobForge.Orchestrator.Domain;
 using JobForge.Orchestrator.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -29,7 +30,7 @@ public static class JobsEndpoints
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        });
+        }).RequireAuthorization(ScopePolicies.Write);
 
         group.MapPost("/{id:guid}/run", async (Guid id, IdempotencyService svc, CancellationToken ct) =>
         {
@@ -45,7 +46,7 @@ public static class JobsEndpoints
             {
                 return Results.NotFound();
             }
-        });
+        }).RequireAuthorization(ScopePolicies.Write);
 
         group.MapGet("/", async (JobForgeDbContext db, CancellationToken ct) =>
         {
@@ -61,7 +62,7 @@ public static class JobsEndpoints
                 result.Add(ToJobResponse(job, last));
             }
             return Results.Ok(result);
-        });
+        }).RequireAuthorization(ScopePolicies.Read);
 
         group.MapGet("/{id:guid}", async (Guid id, JobForgeDbContext db, CancellationToken ct) =>
         {
@@ -72,7 +73,7 @@ public static class JobsEndpoints
                 .OrderByDescending(e => e.ScheduledAt)
                 .FirstOrDefaultAsync(ct);
             return Results.Ok(ToJobResponse(job, last));
-        });
+        }).RequireAuthorization(ScopePolicies.Read);
 
         group.MapDelete("/{id:guid}", async (Guid id, JobForgeDbContext db, CancellationToken ct) =>
         {
@@ -81,7 +82,7 @@ public static class JobsEndpoints
             job.Enabled = false;
             await db.SaveChangesAsync(ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(ScopePolicies.Write);
 
         return app;
     }

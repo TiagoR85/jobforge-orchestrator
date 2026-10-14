@@ -15,7 +15,7 @@ public class IdempotencyTests
     [Fact]
     public async Task Same_key_returns_same_execution_and_does_not_duplicate()
     {
-        var client = _factory.CreateClient();
+        var client = await TokenHelper.CreateAuthorizedClientAsync(_factory, "jobs:write jobs:read");
         var key = Guid.NewGuid().ToString("N");
         object payload = new { name = "dedupe", webhookUrl = "http://example.local/x" };
 
@@ -33,7 +33,7 @@ public class IdempotencyTests
     [Fact]
     public async Task Missing_key_is_400()
     {
-        var client = _factory.CreateClient();
+        var client = await TokenHelper.CreateAuthorizedClientAsync(_factory, "jobs:write jobs:read");
         var res = await client.PostAsJsonAsync("/v1/jobs",
             new { name = "x", webhookUrl = "http://example.local/x" });
         Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
@@ -42,7 +42,7 @@ public class IdempotencyTests
     [Fact]
     public async Task Run_now_creates_new_execution_with_outbox()
     {
-        var client = _factory.CreateClient();
+        var client = await TokenHelper.CreateAuthorizedClientAsync(_factory, "jobs:write jobs:read");
         var job = await JobsApiTests.CreateJobAsync(client, "runnable");
 
         var res = await client.PostAsync($"/v1/jobs/{job.Id}/run", null);

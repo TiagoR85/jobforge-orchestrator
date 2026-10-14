@@ -15,7 +15,7 @@ public class JobsApiTests
     [Fact]
     public async Task Post_job_with_key_creates_definition_and_immediate_execution()
     {
-        var client = _factory.CreateClient();
+        var client = await TokenHelper.CreateAuthorizedClientAsync(_factory, "jobs:write jobs:read");
         var req = new HttpRequestMessage(HttpMethod.Post, "/v1/jobs")
         {
             Content = JsonContent.Create(new
@@ -40,7 +40,7 @@ public class JobsApiTests
     [Fact]
     public async Task Invalid_webhook_url_is_400()
     {
-        var client = _factory.CreateClient();
+        var client = await TokenHelper.CreateAuthorizedClientAsync(_factory, "jobs:write jobs:read");
         var req = new HttpRequestMessage(HttpMethod.Post, "/v1/jobs")
         {
             Content = JsonContent.Create(new { name = "bad", webhookUrl = "not-a-url" })
@@ -54,7 +54,7 @@ public class JobsApiTests
     [Fact]
     public async Task Delete_disables_job()
     {
-        var client = _factory.CreateClient();
+        var client = await TokenHelper.CreateAuthorizedClientAsync(_factory, "jobs:write jobs:read");
         var created = await CreateJobAsync(client, "to-disable");
         var res = await client.DeleteAsync($"/v1/jobs/{created.Id}");
         Assert.Equal(HttpStatusCode.NoContent, res.StatusCode);
@@ -73,6 +73,15 @@ public class JobsApiTests
         var res = await client.SendAsync(req);
         res.EnsureSuccessStatusCode();
         return (await res.Content.ReadFromJsonAsync<JobResponse>())!;
+    }
+
+    internal static Task<JobResponse> CreateJobAsync(SharedWebFactory factory, string name)
+        => CreateJobAsyncFactory(factory, name);
+
+    private static async Task<JobResponse> CreateJobAsyncFactory(SharedWebFactory factory, string name)
+    {
+        var client = await TokenHelper.CreateAuthorizedClientAsync(factory, "jobs:write jobs:read");
+        return await CreateJobAsync(client, name);
     }
 }
 

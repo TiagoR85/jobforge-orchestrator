@@ -1,3 +1,4 @@
+using JobForge.Orchestrator.Auth;
 using JobForge.Orchestrator.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,7 +27,7 @@ public static class ExecutionsEndpoints
                     e.HttpStatusCode, e.Error, e.ScheduledAt, e.StartedAt, e.FinishedAt, e.TraceId))
                 .ToListAsync(ct);
             return Results.Ok(new ExecutionPage(page, size, total, items));
-        });
+        }).RequireAuthorization(ScopePolicies.Read);
 
         group.MapGet("/{id:guid}", async (Guid id, JobForgeDbContext db, CancellationToken ct) =>
         {
@@ -34,7 +35,7 @@ public static class ExecutionsEndpoints
             if (e is null) return Results.NotFound();
             return Results.Ok(new ExecutionResponse(e.Id, e.JobId, e.Status, e.Attempt,
                 e.HttpStatusCode, e.Error, e.ScheduledAt, e.StartedAt, e.FinishedAt, e.TraceId));
-        });
+        }).RequireAuthorization(ScopePolicies.Read);
 
         return app;
     }
