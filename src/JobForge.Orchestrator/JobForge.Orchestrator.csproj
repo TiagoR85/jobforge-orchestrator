@@ -31,5 +31,6 @@
   </ItemGroup>
   <ItemGroup>
     <Protobuf Include="Protos\jobforge\v1\status.proto" GrpcServices="Both" />
+    <None Update="nlog.config" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -3,18 +3,24 @@ using JobForge.Orchestrator.Api;
 using JobForge.Orchestrator.Auth;
 using JobForge.Orchestrator.Configuration;
 using JobForge.Orchestrator.Grpc;
+using JobForge.Orchestrator.Health;
 using JobForge.Orchestrator.Outbox;
 using JobForge.Orchestrator.Persistence;
 using JobForge.Orchestrator.Scheduling;
 using Microsoft.EntityFrameworkCore;
+using NLog.Web;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
+using OpenTelemetry.Metrics;
 using StackExchange.Redis;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Host.UseNLog();
 
 // Fail-fast: never start half-configured (same rule as the other families).
 RequiredConfig.Ensure(builder.Configuration,
@@ -87,6 +93,19 @@ builder.Services.AddSingleton(_ => new KafkaOutboxPublisher(
     builder.Configuration["Kafka:BootstrapServers"]!));
 builder.Services.AddHostedService<OutboxDispatcher>();
 
+builder.Services.AddHealthChecks()
+    .AddCheck("self", static () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy(), tags: ["live"])
+    .AddNpgSql(sp => sp.GetRequiredService<IConfiguration>().GetConnectionString("Postgres")!, tags: ["ready"])
+    .AddCheck<RedisHealthCheck>("redis", tags: ["ready"])
+    .AddCheck<KafkaHealthCheck>("kafka", tags: ["ready"]);
+
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddMeter("JobForge.Orchestrator")
+        .AddPrometheusExporter());
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -99,6 +118,28 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapGet("/", () => "jobforge-orchestrator");
+app.MapHealthChecks("/health/live",
+    new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+    {
+        Predicate = static r => r.Tags.Contains("live")
+    });
+app.MapHealthChecks("/health/ready",
+    new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+    {
+        Predicate = static r => r.Tags.Contains("ready"),
+        ResponseWriter = async (ctx, report) =>
+        {
+            ctx.Response.ContentType = "application/json";
+            await ctx.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(new
+            {
+                status = report.Status.ToString(),
+                checks = report.Entries.ToDictionary(
+                    e => e.Key,
+                    e => new { status = e.Value.Status.ToString(), error = e.Value.Description })
+            }));
+        }
+    });
+app.UseOpenTelemetryPrometheusScrapingEndpoint("/metrics");
 app.MapGrpcService<ExecutionStatusServiceImpl>();
 app.MapJobEndpoints();
 app.MapExecutionEndpoints();
