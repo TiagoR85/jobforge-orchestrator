@@ -2,6 +2,7 @@ using System.Security.Claims;
 using JobForge.Orchestrator.Api;
 using JobForge.Orchestrator.Auth;
 using JobForge.Orchestrator.Configuration;
+using JobForge.Orchestrator.Grpc;
 using JobForge.Orchestrator.Outbox;
 using JobForge.Orchestrator.Persistence;
 using JobForge.Orchestrator.Scheduling;
@@ -70,6 +71,8 @@ builder.Services.AddAuthorization(options => options.AddJobForgePolicies());
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IdempotencyService>();
+builder.Services.AddGrpc();
+builder.Services.AddScoped<ExecutionStatusProcessor>();
 
 builder.Services.Configure<SchedulerOptions>(builder.Configuration.GetSection("Scheduler"));
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
@@ -96,6 +99,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapGet("/", () => "jobforge-orchestrator");
+app.MapGrpcService<ExecutionStatusServiceImpl>();
 app.MapJobEndpoints();
 app.MapExecutionEndpoints();
 app.Run();

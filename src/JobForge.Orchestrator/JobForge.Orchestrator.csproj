@@ -29,4 +29,7 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
     <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
   </ItemGroup>
+  <ItemGroup>
+    <Protobuf Include="Protos\jobforge\v1\status.proto" GrpcServices="Both" />
+  </ItemGroup>
 </Project>
