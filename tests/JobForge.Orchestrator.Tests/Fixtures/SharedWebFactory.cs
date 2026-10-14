@@ -2,6 +2,7 @@ using JobForge.Orchestrator.Domain;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Testcontainers.Kafka;
 
 namespace JobForge.Orchestrator.Tests.Fixtures;
 
@@ -17,7 +18,7 @@ public sealed class SharedWebFactory : WebApplicationFactory<Program>
         [
             new("ConnectionStrings:Postgres", Infra.Postgres.GetConnectionString()),
             new("Redis:ConnectionString", Infra.Redis.GetConnectionString()),
-            new("Kafka:BootstrapServers", "localhost:9092"),
+            new("Kafka:BootstrapServers", Infra.Kafka.GetBootstrapAddress()),
             new("OpenIddict:ClientSecret", "test-secret"),
             new("Scheduler:Enabled", "false"),
             new("Scheduler:LeaseName", SchedulerLeaseName),

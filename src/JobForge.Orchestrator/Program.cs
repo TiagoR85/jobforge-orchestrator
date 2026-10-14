@@ -2,6 +2,7 @@ using System.Security.Claims;
 using JobForge.Orchestrator.Api;
 using JobForge.Orchestrator.Auth;
 using JobForge.Orchestrator.Configuration;
+using JobForge.Orchestrator.Outbox;
 using JobForge.Orchestrator.Persistence;
 using JobForge.Orchestrator.Scheduling;
 using Microsoft.EntityFrameworkCore;
@@ -77,6 +78,11 @@ builder.Services.AddSingleton<LeaseService>();
 // Singleton própria + hosted via factory: o teste resolve CronSchedulerService direto.
 builder.Services.AddSingleton<CronSchedulerService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<CronSchedulerService>());
+
+builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection("Outbox"));
+builder.Services.AddSingleton(_ => new KafkaOutboxPublisher(
+    builder.Configuration["Kafka:BootstrapServers"]!));
+builder.Services.AddHostedService<OutboxDispatcher>();
 
 var app = builder.Build();
 
