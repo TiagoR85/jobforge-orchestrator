@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/JobForge.Orchestrator/JobForge.Orchestrator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/JobForge.Orchestrator.Tests/JobForge.Orchestrator.Tests.csproj" />
+  </Folder>
+</Solution>
