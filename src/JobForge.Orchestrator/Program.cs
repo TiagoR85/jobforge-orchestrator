@@ -7,6 +7,7 @@ using JobForge.Orchestrator.Health;
 using JobForge.Orchestrator.Outbox;
 using JobForge.Orchestrator.Persistence;
 using JobForge.Orchestrator.Scheduling;
+using JobForge.Orchestrator.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using NLog.Web;
 using OpenIddict.Abstractions;
@@ -79,6 +80,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IdempotencyService>();
 builder.Services.AddGrpc();
 builder.Services.AddScoped<ExecutionStatusProcessor>();
+builder.Services.AddSingleton<JobForgeMetrics>();
 
 builder.Services.Configure<SchedulerOptions>(builder.Configuration.GetSection("Scheduler"));
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
@@ -103,7 +105,7 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddRuntimeInstrumentation()
-        .AddMeter("JobForge.Orchestrator")
+        .AddMeter(JobForgeMetrics.MeterName)
         .AddPrometheusExporter());
 
 var app = builder.Build();

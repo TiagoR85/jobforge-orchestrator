@@ -1,10 +1,14 @@
 using JobForge.Orchestrator.Persistence;
+using JobForge.Orchestrator.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using ExecutionStates = JobForge.Orchestrator.Domain.ExecutionStatus;
 
 namespace JobForge.Orchestrator.Grpc;
 
-public sealed class ExecutionStatusProcessor(JobForgeDbContext db, TimeProvider clock)
+public sealed class ExecutionStatusProcessor(
+    JobForgeDbContext db,
+    TimeProvider clock,
+    JobForgeMetrics metrics)
 {
     public async Task<bool> PersistAsync(StatusReport report, CancellationToken ct)
     {
@@ -12,6 +16,7 @@ public sealed class ExecutionStatusProcessor(JobForgeDbContext db, TimeProvider 
         var execution = await db.JobExecutions.FirstOrDefaultAsync(e => e.Id == id, ct);
         if (execution is null) return false;
 
+        var previous = execution.Status;
         execution.Status = report.Status;
         execution.Attempt = report.Attempt;
         execution.HttpStatusCode = report.HttpStatus == 0 ? null : report.HttpStatus;
@@ -22,6 +27,14 @@ public sealed class ExecutionStatusProcessor(JobForgeDbContext db, TimeProvider 
             execution.FinishedAt = clock.GetUtcNow().UtcDateTime;
 
         await db.SaveChangesAsync(ct);
+
+        if (previous != execution.Status
+            && execution.Status is ExecutionStates.Succeeded or ExecutionStates.Failed or ExecutionStates.Dead)
+        {
+            metrics.ExecutionFinished(execution.Status, report.DurationMs);
+            if (execution.Status == ExecutionStates.Dead) metrics.DeadLetter();
+        }
+
         return true;
     }
 }

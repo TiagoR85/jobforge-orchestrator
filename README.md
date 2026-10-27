@@ -63,6 +63,17 @@ All endpoints require a bearer token (client-credentials from `POST /connect/tok
 | `/health/live` · `/health/ready` | public | ready = Postgres + Redis + Kafka |
 | `/metrics` | public | Prometheus |
 
+Business metrics (meter `JobForge.Orchestrator`, exported on `/metrics`):
+
+| Metric | Type | Labels | Meaning |
+|---|---|---|---|
+| `jobforge_executions_completed_total` | counter | `status` | executions reaching a terminal status (`succeeded`/`failed`/`dead`) |
+| `jobforge_executions_pending` | gauge | | executions waiting to be dispatched (DB count per scrape) |
+| `jobforge_webhook_duration_milliseconds` | histogram | `status` | webhook duration reported by the runner |
+| `jobforge_dead_letters_total` | counter | | executions that exhausted their retries |
+
+On top of the ASP.NET Core and .NET runtime metrics.
+
 The runner contract is `Protos/jobforge/v1/status.proto` (`ExecutionStatus/Report`, bidirectional stream) served on the dedicated HTTP/2 port **:8097**.
 
 ## Decisions
