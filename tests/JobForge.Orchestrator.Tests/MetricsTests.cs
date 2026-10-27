@@ -40,6 +40,24 @@ public class MetricsTests
         Assert.DoesNotContain(doubles, d => d.Name == "jobforge.webhook.duration");
     }
 
+    [Fact]
+    public void Exposes_the_four_business_instruments()
+    {
+        var published = new List<string>();
+        using var listener = new MeterListener
+        {
+            InstrumentPublished = (instrument, _) => published.Add(instrument.Name)
+        };
+        listener.Start();
+
+        using var metrics = CreateMetrics();
+
+        Assert.Contains("jobforge.executions.completed", published);
+        Assert.Contains("jobforge.executions.pending", published);
+        Assert.Contains("jobforge.webhook.duration", published);
+        Assert.Contains("jobforge.dead_letters", published);
+    }
+
     private static JobForgeMetrics CreateMetrics() =>
         new(new UnusedScopeFactory(), NullLogger<JobForgeMetrics>.Instance);
 

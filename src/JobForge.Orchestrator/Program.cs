@@ -110,6 +110,10 @@ builder.Services.AddOpenTelemetry()
 
 var app = builder.Build();
 
+// Create the meter at startup: the singleton is otherwise lazy and /metrics would miss the
+// observable gauge until the first runner report.
+app.Services.GetRequiredService<JobForgeMetrics>();
+
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
